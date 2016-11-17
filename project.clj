@@ -1,7 +1,9 @@
 (defproject pg-ix-connector "0.1.0"
   :description "Connects the payment gateway to InvoiceXpress"
   :url "https://github.com/weareswat/pg-ix-connector"
-  :dependencies [[org.clojure/clojure "1.8.0"]]
+
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/data.xml "0.0.8"]]
 
   :aliases {"autotest" ["trampoline" "with-profile" "+test" "test-refresh"]
             "test"  ["trampoline" "test"]}
