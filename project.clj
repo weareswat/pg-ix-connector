@@ -3,7 +3,9 @@
   :url "https://github.com/weareswat/pg-ix-connector"
 
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/data.xml "0.0.8"]]
+                 [org.clojure/data.xml "0.0.8"]
+                 [environ "1.1.0"]
+                 [weareswat/request-utils "0.5.0"]]
 
   :aliases {"autotest" ["trampoline" "with-profile" "+test" "test-refresh"]
             "test"  ["trampoline" "test"]}
