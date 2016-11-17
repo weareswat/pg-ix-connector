@@ -60,4 +60,6 @@
                        :quantity 1
                        :tax {:name "IVA23"}}]}
         result (<!! (core/create-document-ch data))]
-    (is (result/succeeded? result))))
+    (is (result/succeeded? result))
+    (is (= "settled" (:state result)))
+    (is (slurp (:permalink result)))))

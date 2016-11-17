@@ -93,17 +93,41 @@
   "Gets the url to create the document"
   [args]
   (str "https://" (get-in args [:supplier :account-name])
-        ".app.invoicexpress.com/" (name (:type args)) "s"
-        "?api_key=" (get-in args [:supplier :api-key])))
+       ".app.invoicexpress.com/" (name (:type args)) "s"
+       "?api_key=" (get-in args [:supplier :api-key])))
+
+(defn change-state-url
+  "Gets the url to change the state of the document"
+  [args document]
+  (str "https://" (get-in args [:supplier :account-name])
+       ".app.invoicexpress.com/" (name (:type args)) "s"
+       "/" (:id document) "/change-state.xml"
+       "?api_key=" (get-in args [:supplier :api-key])))
+
+(defn change-state-body
+  "Gets the body for a change state"
+  [args state]
+  (str "<" (name (:type args)) ">"
+        "<state>" state "</state>"
+       "</" (name (:type args)) ">"))
 
 (defn create-document-ch
   "Creates an invoicing document, and returns a channel"
   [args]
-  (let [host (create-url args)]
-    (go
-      (result/on-success [response (<! (request-utils/http-post
-                                         {:host host
-                                          :headers {"Content-type" "application/xml; charset=utf-8"}
-                                          :plain-body? true
-                                          :body (document-xml-str args)}))]
-                         (result/success (load-from-xml (:body response)))))))
+  (go
+    (result/enforce-let [create-response (<! (request-utils/http-post
+                                               {:host (create-url args)
+                                                :headers {"Content-type" "application/xml; charset=utf-8"}
+                                                :plain-body? true
+                                                :body (document-xml-str args)}))
+                         create-result (load-from-xml (:body create-response))
+
+                         finalize-response (<! (request-utils/http-put
+                                               {:host (change-state-url args create-result)
+                                                :headers {"Content-type" "application/xml; charset=utf-8"}
+                                                :plain-body? true
+                                                :body (change-state-body args "finalized")}))
+                         finalize-result (load-from-xml (:body finalize-response))]
+
+                        (result/success (merge finalize-result
+                                               create-result)))))
