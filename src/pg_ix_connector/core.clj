@@ -6,10 +6,18 @@
             [request-utils.core :as request-utils]
             [result.core :as result]))
 
+(defn input-key
+  "Replace underscore for hyphen"
+  [key]
+  (let [key-string (name key)]
+    (if (clojure.string/includes? key-string "_")
+      (keyword (clojure.string/replace key-string "_" "-"))
+      key)))
+
 (defn optional-element
   "Only produce an element if the value exists"
   [document prop-key]
-  (if-let [prop-value (get document prop-key)]
+  (if-let [prop-value (get document (input-key prop-key))]
     (xml/element prop-key {} prop-value)))
 
 (defn document-xml
@@ -18,6 +26,7 @@
   (let [client (:client document)]
     (xml/element (keyword (:type document)) {}
                  (xml/element :date {} (:date document))
+                 (xml/element :due_date {} (:due-date document))
                  (optional-element document :sequence_number)
                  (optional-element document :sequence_id)
                  (optional-element document :reference)
@@ -25,6 +34,7 @@
                  (optional-element document :status)
                  (xml/element :client {}
                               (xml/element :name {} (:name client))
+                              (optional-element client :fiscal_id)
                               (optional-element client :email)
                               (optional-element client :country)
                               (optional-element client :postal_code)
