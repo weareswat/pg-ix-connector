@@ -67,3 +67,30 @@
     (is (result/succeeded? result))
     (is (= "settled" (:state result)))
     (is (slurp (:permalink result)))))
+
+(deftest create-document-change-client-test
+  (let [data {:supplier {:name "InvoiceXpres"
+                         :account-name test-account-name
+                         :api-key test-api-key}
+              :type :invoice_receipt
+              :date "07/05/2015"
+              :client {:name "PG IX Connector"
+                       :code "pg-ix-connector"}
+              :items [{:name "Product"
+                       :description "Beauty product"
+                       :unit-price 5
+                       :quantity 1
+                       :tax {:name "IVA23"}}]}
+        result (<!! (core/create-document-ch data))]
+    (is (result/succeeded? result))
+
+    (testing "Request with changed client"
+      (let [data (-> data
+                     (assoc :update-client true)
+                     (assoc-in [:client :name] "PG IX Connector Changed")
+                     (assoc-in [:client :email] "hello@clanhr.com"))
+            result (<!! (core/create-document-ch data))]
+        (is (result/succeeded? result))
+
+        (is (= "PG IX Connector Changed" (get-in result [:client :name])))
+        (is (= "hello@clanhr.com" (get-in result [:client :email])))))))

@@ -20,6 +20,24 @@
   (if-let [prop-value (get document (input-key prop-key))]
     (xml/element prop-key {} prop-value)))
 
+(defn client-xml
+  "Creates a proper XML for the given client"
+  [client]
+  (xml/element :client {}
+               (xml/element :name {} (:name client))
+               (optional-element client :fiscal_id)
+               (optional-element client :email)
+               (optional-element client :country)
+               (optional-element client :postal_code)
+               (optional-element client :address)
+               (optional-element client :city)
+               (optional-element client :send_options)
+               (optional-element client :website)
+               (optional-element client :phone)
+               (optional-element client :fax)
+               (optional-element client :language)
+               (xml/element :code {} (:code client))))
+
 (defn document-xml
   "Creates a proper XML for the given document data"
   [document]
@@ -32,20 +50,7 @@
                  (optional-element document :reference)
                  (optional-element document :observations)
                  (optional-element document :status)
-                 (xml/element :client {}
-                              (xml/element :name {} (:name client))
-                              (optional-element client :fiscal_id)
-                              (optional-element client :email)
-                              (optional-element client :country)
-                              (optional-element client :postal_code)
-                              (optional-element client :address)
-                              (optional-element client :city)
-                              (optional-element client :send_options)
-                              (optional-element client :website)
-                              (optional-element client :phone)
-                              (optional-element client :fax)
-                              (optional-element client :language)
-                              (xml/element :code {} (:code client)))
+                 (client-xml client)
                  (xml/element :items {:type "array"}
                               (map (fn [item]
                                      (xml/element :item {}
@@ -60,6 +65,9 @@
 
 (defn document-xml-str [document]
   (xml/emit-str (document-xml document)))
+
+(defn client-xml-str [client]
+  (xml/emit-str (client-xml client)))
 
 (def boolean-fields #{:archived})
 (def number-fields #{:taxes :total :id :before_taxes :discount :sum :value
@@ -99,18 +107,39 @@
   (let [xml-data (xml/parse-str raw-xml-str)]
     (result/success (xml->map (:content xml-data) {:type (:tag xml-data)}))))
 
+(defn host
+  "Gets the api host"
+  [args]
+  (or (get-in args [:supplier :host])
+      "app.invoicexpress.com"))
+
 (defn create-url
   "Gets the url to create the document"
   [args]
   (str "https://" (get-in args [:supplier :account-name])
-       ".app.invoicexpress.com/" (name (:type args)) "s"
+       "." (host args) "/" (name (:type args)) "s"
+       "?api_key=" (get-in args [:supplier :api-key])))
+
+(defn client-by-code-url
+  "Gets the url to get the client by code"
+  [args]
+  (str "https://" (get-in args [:supplier :account-name])
+       "." (host args) "/clients/find-by-code.xml"
+       "?api_key=" (get-in args [:supplier :api-key])
+       "&client_code=" (get-in args [:client :code])))
+
+(defn update-client-url
+  "Gets the url to update the client"
+  [args client-id]
+  (str "https://" (get-in args [:supplier :account-name])
+       "." (host args) "/clients/" (str client-id) ".xml"
        "?api_key=" (get-in args [:supplier :api-key])))
 
 (defn change-state-url
   "Gets the url to change the state of the document"
   [args document]
   (str "https://" (get-in args [:supplier :account-name])
-       ".app.invoicexpress.com/" (name (:type args)) "s"
+       "." (host args) "/" (name (:type args)) "s"
        "/" (:id document) "/change-state.xml"
        "?api_key=" (get-in args [:supplier :api-key])))
 
@@ -121,11 +150,34 @@
         "<state>" state "</state>"
        "</" (name (:type args)) ">"))
 
+(defn update-client!
+  "Updates the client data, if necessary"
+  [args]
+  (go
+    (if-not (:update-client args)
+      (result/success)
+      (result/enforce-let [client (<! (request-utils/http-get
+                                        {:host (client-by-code-url args)
+                                         :plain-body? true
+                                         :headers {"Content-type" "application/xml; charset=utf-8"}}))
+
+                           update-result (<! (request-utils/http-put
+                                          {:host (update-client-url args
+                                                                    (-> client
+                                                                        :body
+                                                                        load-from-xml
+                                                                        :id))
+                                           :plain-body? true
+                                           :body (client-xml-str (:client args))
+                                           :headers {"Content-type" "application/xml; charset=utf-8"}}))]))))
+
 (defn create-document-ch
   "Creates an invoicing document, and returns a channel"
   [args]
   (go
-    (result/enforce-let [create-response (<! (request-utils/http-post
+    (result/enforce-let [client-result (<! (update-client! args))
+
+                         create-response (<! (request-utils/http-post
                                                {:host (create-url args)
                                                 :headers {"Content-type" "application/xml; charset=utf-8"}
                                                 :plain-body? true
