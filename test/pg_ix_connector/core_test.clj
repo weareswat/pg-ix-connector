@@ -9,8 +9,10 @@
 (deftest document-xml-test
   (let [data {:type :invoice_receipt
               :date "07/05/2015"
+              :due-date "07/05/2015"
               :client {:name "Pedro"
-                       :code "123"}
+                       :code "123"
+                       :fiscal-id "999999990"}
               :items [{:name "Product"
                        :description "Beauty product"
                        :unit-price 5
@@ -19,8 +21,10 @@
         document-str (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                           "<invoice_receipt>"
                             "<date>07/05/2015</date>"
+                            "<due_date>07/05/2015</due_date>"
                             "<client>"
                               "<name>Pedro</name>"
+                              "<fiscal_id>999999990</fiscal_id>"
                               "<code>123</code>"
                             "</client>"
                             "<items type=\"array\">"
