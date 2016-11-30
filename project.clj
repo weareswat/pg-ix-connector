@@ -1,4 +1,4 @@
-(defproject pg-ix-connector "0.2.0"
+(defproject weareswat/pg-ix-connector "0.3.0"
   :description "Connects the payment gateway to InvoiceXpress"
   :url "https://github.com/weareswat/pg-ix-connector"
 
