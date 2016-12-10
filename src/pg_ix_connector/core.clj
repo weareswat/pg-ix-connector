@@ -45,6 +45,7 @@
     (xml/element (keyword (:type document)) {}
                  (xml/element :date {} (:date document))
                  (xml/element :due_date {} (:due-date document))
+                 (optional-element document :tax-exemption)
                  (optional-element document :sequence_number)
                  (optional-element document :sequence_id)
                  (optional-element document :reference)

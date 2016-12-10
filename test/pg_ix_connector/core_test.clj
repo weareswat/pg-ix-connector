@@ -8,8 +8,9 @@
 
 (deftest document-xml-test
   (let [data {:type :invoice_receipt
-              :date "07/05/2015"
-              :due-date "07/05/2015"
+              :date "10/12/2016"
+              :due-date "10/12/2016"
+              :tax_exemption "M08"
               :client {:name "Pedro"
                        :code "123"
                        :fiscal-id "999999990"}
@@ -17,11 +18,11 @@
                        :description "Beauty product"
                        :unit-price 5
                        :quantity 1
-                       :tax {:name "IVA23"}}]}
+                       :tax {:name "Isento"}}]}
         document-str (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                           "<invoice_receipt>"
-                            "<date>07/05/2015</date>"
-                            "<due_date>07/05/2015</due_date>"
+                            "<date>10/12/2016</date>"
+                            "<due_date>10/12/2016</due_date>"
                             "<client>"
                               "<name>Pedro</name>"
                               "<fiscal_id>999999990</fiscal_id>"
@@ -34,7 +35,7 @@
                                 "<unit_price>5</unit_price>"
                                 "<quantity>1</quantity>"
                                 "<tax>"
-                                  "<name>IVA23</name>"
+                                  "<name>Isento</name>"
                                 "</tax>"
                               "</item>"
                             "</items>"
@@ -55,7 +56,7 @@
                          :account-name test-account-name
                          :api-key test-api-key}
               :type :invoice_receipt
-              :date "07/05/2015"
+              :date "10/12/2016"
               :client {:name "PG IX Connector"
                        :code "pg-ix-connector"}
               :items [{:name "Product"
@@ -73,7 +74,7 @@
                          :account-name test-account-name
                          :api-key test-api-key}
               :type :invoice_receipt
-              :date "07/05/2015"
+              :date "10/12/2016"
               :client {:name "PG IX Connector"
                        :code "pg-ix-connector"}
               :items [{:name "Product"
