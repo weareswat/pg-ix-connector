@@ -4,12 +4,18 @@
             [result.core :as result]
             [environ.core :refer [env]]
             [pg-ix-connector.core :refer :all]
-            [pg-ix-connector.core :as core]))
+            [pg-ix-connector.core :as core]
+            [clj-time.core :refer [now]]
+            [clj-time.format :refer [unparse formatter]]))
+
+(def date-formatter (formatter "dd-MM-yyyy"))
+
+(def ^:const date (unparse date-formatter (now)))
 
 (deftest document-xml-test
   (let [data {:type :invoice_receipt
-              :date "10/12/2016"
-              :due-date "10/12/2016"
+              :date date
+              :due-date date
               :tax_exemption "M08"
               :client {:name "Pedro"
                        :code "123"
@@ -21,8 +27,8 @@
                        :tax {:name "Isento"}}]}
         document-str (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                           "<invoice_receipt>"
-                            "<date>10/12/2016</date>"
-                            "<due_date>10/12/2016</due_date>"
+                            "<date>" date "</date>"
+                            "<due_date>" date "</due_date>"
                             "<client>"
                               "<name>Pedro</name>"
                               "<fiscal_id>999999990</fiscal_id>"
@@ -56,7 +62,7 @@
                          :account-name test-account-name
                          :api-key test-api-key}
               :type :invoice_receipt
-              :date "10/12/2016"
+              :date date
               :client {:name "PG IX Connector"
                        :code "pg-ix-connector"}
               :items [{:name "Product"
@@ -74,7 +80,7 @@
                          :account-name test-account-name
                          :api-key test-api-key}
               :type :invoice_receipt
-              :date "10/12/2016"
+              :date date
               :client {:name "PG IX Connector"
                        :code "pg-ix-connector"}
               :items [{:name "Product"
@@ -94,4 +100,16 @@
         (is (result/succeeded? result))
 
         (is (= "PG IX Connector Changed" (get-in result [:client :name])))
-        (is (= "hello@clanhr.com" (get-in result [:client :email])))))))
+        (is (= "hello@clanhr.com" (get-in result [:client :email])))))
+
+    (testing "Request with changed client but the client doesn't exists"
+      (let [code (str (java.util.UUID/randomUUID))
+            data (-> data
+                     (assoc :update-client true)
+                     (assoc-in [:client :name] "NEW PG IX Connector Changed")
+                     (assoc-in [:client :code] code))
+            result (<!! (core/create-document-ch data))]
+        (is (result/succeeded? result))
+
+        (is (= "NEW PG IX Connector Changed" (get-in result [:client :name])))
+        (is (= code (get-in result [:client :code])))))))

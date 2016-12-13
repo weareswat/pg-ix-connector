@@ -151,26 +151,43 @@
         "<state>" state "</state>"
        "</" (name (:type args)) ">"))
 
+(defn call-client-find-by-code!
+  [args]
+  (go
+    (let [result (<! (request-utils/http-get
+                {:host (client-by-code-url args)
+                 :plain-body? true
+                 :headers {"Content-type" "application/xml; charset=utf-8"}}))]
+      (if (= 404 (:status result))
+        {:success true :body (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                                  "<client>"
+                                  "</client>")}
+        result))))
+
+(defn call-update-client!
+  "Calls the IX to update the client identified with the client-id"
+  [args]
+  (go
+    (let [client (<!! (call-client-find-by-code! args))
+          client-id (-> client
+                        :body
+                        load-from-xml
+                        :id)]
+      (if (some? client-id)
+        (<! (request-utils/http-put
+         {:host (update-client-url args client-id)
+          :plain-body? true
+          :body (client-xml-str (:client args))
+          :headers {"Content-type" "application/xml; charset=utf-8"}}))
+        (result/success)))))
+
 (defn update-client!
   "Updates the client data, if necessary"
   [args]
   (go
     (if-not (:update-client args)
       (result/success)
-      (result/enforce-let [client (<! (request-utils/http-get
-                                        {:host (client-by-code-url args)
-                                         :plain-body? true
-                                         :headers {"Content-type" "application/xml; charset=utf-8"}}))
-
-                           update-result (<! (request-utils/http-put
-                                          {:host (update-client-url args
-                                                                    (-> client
-                                                                        :body
-                                                                        load-from-xml
-                                                                        :id))
-                                           :plain-body? true
-                                           :body (client-xml-str (:client args))
-                                           :headers {"Content-type" "application/xml; charset=utf-8"}}))]))))
+      (result/enforce-let [update-result (<! (call-update-client! args))]))))
 
 (defn create-document-ch
   "Creates an invoicing document, and returns a channel"
