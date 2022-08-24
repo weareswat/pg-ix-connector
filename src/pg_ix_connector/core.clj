@@ -119,7 +119,7 @@
   [args]
   (str "https://" (get-in args [:supplier :account-name])
        "." (host args) "/" (name (:type args)) "s"
-       "?api_key=" (get-in args [:supplier :api-key])))
+       ".xml?api_key=" (get-in args [:supplier :api-key])))
 
 (defn client-by-code-url
   "Gets the url to get the client by code"
