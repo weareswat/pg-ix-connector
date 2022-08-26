@@ -1,4 +1,3 @@
-lein: 2.6.1
 jdk:
   - openjdk8
 language: clojure
